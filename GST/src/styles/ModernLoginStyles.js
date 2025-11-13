@@ -24,7 +24,7 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: width < 350 ? 28 : 32, // Larger font
     fontWeight: "700",
-    color: COLORS.text, // Use new text color
+    color: COLORS.primary, // Use new text color
     textAlign: "center",
     marginBottom: 8,
   },
@@ -50,7 +50,7 @@ export const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 15,
     fontSize: 16,
-    color: COLORS.text,
+    color: COLORS.primary,
     backgroundColor: "#f8fafc", // Slight off-white background
   },
   inputError: {

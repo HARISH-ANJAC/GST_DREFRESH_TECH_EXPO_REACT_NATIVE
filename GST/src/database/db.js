@@ -1,33 +1,42 @@
-// db.js
+// db.js - UPDATED VERSION
 import * as SQLite from "expo-sqlite";
+
+let database = null;
 
 // Open or create database
 export const openDB = async () => {
   try {
-    return await SQLite.openDatabaseAsync("invoice.db");
+    if (!database) {
+      database = await SQLite.openDatabaseAsync("invoice.db");
+      console.log("Database opened successfully");
+      
+      // Initialize tables immediately after opening
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS invoices (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          invoiceType TEXT,
+          date TEXT,
+          invoiceNumber TEXT,
+          shopName TEXT,
+          customerName TEXT,
+          mobile TEXT,
+          total TEXT,
+          invoiceData TEXT
+        );
+      `);
+      console.log("Database tables initialized");
+    }
+    return database;
   } catch (error) {
     console.error("Error opening database:", error);
     throw error;
   }
 };
 
-// Initialize the table
+// Initialize the table (redundant but kept for compatibility)
 export const initDB = async () => {
   try {
     const db = await openDB();
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS invoices (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        invoiceType TEXT,
-        date TEXT,
-        invoiceNumber TEXT,
-        shopName TEXT,
-        customerName TEXT,
-        mobile TEXT,
-        total TEXT,
-        invoiceData TEXT
-      );
-    `);
     console.log("Database initialized successfully");
     return db;
   } catch (error) {
@@ -36,7 +45,7 @@ export const initDB = async () => {
   }
 };
 
-// Save new invoice
+// Save new invoice - UPDATED with better error handling
 export const saveInvoice = async (invoiceData) => {
   try {
     const db = await openDB();
@@ -53,10 +62,12 @@ export const saveInvoice = async (invoiceData) => {
     const shopName = "Anu Crackers";
     const customerName = customer?.name || "";
     const mobile = customer?.phone || "";
-    const total = totals?.grandTotal?.toString() || "0";
+    
+    // Fix: Ensure total is properly converted to string
+    const total = totals?.grandTotal ? totals.grandTotal.toString() : "0";
 
     // Convert date to string if it's a Date object
-    const dateString = date instanceof Date ? date.toISOString() : date;
+    const dateString = date instanceof Date ? date.toISOString() : String(date);
 
     console.log("Saving invoice:", {
       invoiceType,
@@ -66,6 +77,22 @@ export const saveInvoice = async (invoiceData) => {
       mobile,
       total
     });
+
+        console.log("Get data Format : ",      [
+        invoiceType=invoiceType,
+        dateString=dateString,
+        invoiceNumber=invoiceNumber,
+        shopName=shopName,
+        customerName=customerName,
+        mobile=mobile,
+        total=total,
+        invoiceData=JSON.stringify(invoiceData),
+      ]);
+    
+    // Validate data before insertion
+    if (!invoiceType || !dateString || !invoiceNumber) {
+      throw new Error("Missing required invoice fields");
+    }
 
     // Store full JSON string in invoiceData
     const result = await db.runAsync(
@@ -84,6 +111,7 @@ export const saveInvoice = async (invoiceData) => {
       ]
     );
 
+
     console.log("Invoice saved successfully with ID:", result.lastInsertRowId);
     return result;
   } catch (error) {
@@ -92,10 +120,12 @@ export const saveInvoice = async (invoiceData) => {
   }
 };
 
+// ... rest of the functions remain the same
 // Get all invoices
 export const getInvoices = async () => {
+  let db;
   try {
-    const db = await openDB();
+    db = await openDB();
     const rows = await db.getAllAsync("SELECT * FROM invoices ORDER BY id DESC;");
     
     const invoices = rows.map((row) => {
@@ -123,8 +153,9 @@ export const getInvoices = async () => {
 
 // Get single invoice by ID
 export const getInvoiceById = async (id) => {
+  let db;
   try {
-    const db = await openDB();
+    db = await openDB();
     const row = await db.getFirstAsync("SELECT * FROM invoices WHERE id = ?;", [id]);
     
     if (row) {
@@ -142,8 +173,9 @@ export const getInvoiceById = async (id) => {
 
 // Delete invoice
 export const deleteInvoice = async (id) => {
+  let db;
   try {
-    const db = await openDB();
+    db = await openDB();
     const result = await db.runAsync("DELETE FROM invoices WHERE id = ?;", [id]);
     console.log("Invoice deleted:", id);
     return result;
@@ -155,8 +187,9 @@ export const deleteInvoice = async (id) => {
 
 // Update invoice
 export const updateInvoice = async (id, invoiceData) => {
+  let db;
   try {
-    const db = await openDB();
+    db = await openDB();
 
     const {
       invoiceType,
@@ -197,8 +230,9 @@ export const updateInvoice = async (id, invoiceData) => {
 
 // Get invoice count
 export const getInvoiceCount = async () => {
+  let db;
   try {
-    const db = await openDB();
+    db = await openDB();
     const result = await db.getFirstAsync("SELECT COUNT(*) as count FROM invoices;");
     return result?.count || 0;
   } catch (error) {
@@ -209,12 +243,37 @@ export const getInvoiceCount = async () => {
 
 // Clear all invoices (for testing/reset)
 export const clearAllInvoices = async () => {
+  let db;
   try {
-    const db = await openDB();
+    db = await openDB();
     await db.execAsync("DELETE FROM invoices;");
     console.log("All invoices cleared");
   } catch (error) {
     console.error("Error clearing invoices:", error);
+    throw error;
+  }
+};
+
+// Close database (optional, for cleanup)
+export const closeDB = async () => {
+  if (database) {
+    await database.closeAsync();
+    database = null;
+    console.log("Database closed");
+  }
+};
+
+// Add to db.js
+export const resetDB = async () => {
+  try {
+    if (database) {
+      await database.closeAsync();
+      database = null;
+      console.log("Database connection reset");
+    }
+    return await openDB();
+  } catch (error) {
+    console.error("Error resetting database:", error);
     throw error;
   }
 };

@@ -1,14 +1,15 @@
 {
   "expo": {
-    "name": "GST",
+    "name": "D Refresh INV",
     "slug": "GST",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/ic_launcher_foreground.png",
+    "iconBackgroundColor": "#ffffff",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/SplashIcon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,15 +18,27 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/ic_launcher_foreground.png",
+        "backgroundImage": "./assets/ic_launcher_background.png"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.drefreshgst.com",
+      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
+      "usesCleartextTraffic": true
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
-"plugins": [
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
       [
         "expo-sqlite",
         {
@@ -36,10 +49,17 @@
             "useSQLCipher": false
           },
           "ios": {
-            "customBuildFlags": ["-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"]
+            "customBuildFlags": [
+              "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
+            ]
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1340791f-caf0-4558-88a0-4bbf2b1bb72a"
+      }
+    }
   }
 }

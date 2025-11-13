@@ -20,7 +20,9 @@ import { WebView } from 'react-native-webview';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { COLORS } from '../constants/colors';
-import { generateInvoiceHTML } from '../Utils/Templates/StandardTemplate';
+import { ProfessionalTemplate, StandardTemplate } from '../Utils/Templates';
+import { COMPANYINFO } from '../constants/CompanyInfo';
+import useAuth from '../components/useAuth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,42 +30,56 @@ const InvoicePreviewScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { invoiceData } = route.params;
-  
+  const { UserData } = useAuth(); // Add this line to get user data
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [invoiceWatermark, setInvoiceWatermark] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState(1);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // List of available invoice templates
+  // List of available invoice templates with their generator functions
   const invoiceTemplates = [
     {
       id: 1,
       name: "Standard Template",
       description: "Default ANU CRACKERS invoice template",
       isDefault: true,
+      generator: StandardTemplate
     },
     {
       id: 2,
       name: "Professional Template", 
       description: "Clean and professional layout",
       isDefault: false,
+      generator: ProfessionalTemplate
     },
-    {
-      id: 3,
-      name: "Compact Template",
-      description: "Space optimized for thermal printers",
-      isDefault: false,
-    },
+    // {
+    //   id: 3,
+    //   name: "Compact Template",
+    //   description: "Space optimized for thermal printers",
+    //   isDefault: false,
+    //   generator: StandardTemplate // Use Standard as fallback until Compact is created
+    // },
   ];
 
-const htmlContent = generateInvoiceHTML({
-  ...invoiceData,
-  settings: {
-    invoiceWatermark: invoiceWatermark, // from your state
-    templateId: selectedTemplate // from your state
-  }
-});
+  // Get the selected template generator
+  const getSelectedTemplate = () => {
+    const template = invoiceTemplates.find(t => t.id === selectedTemplate);
+    return template ? template.generator : StandardTemplate;
+  };
+
+  // Generate HTML content with selected template AND user data
+  const generateHTMLContent = () => {
+    const templateGenerator = getSelectedTemplate();
+    return templateGenerator({
+      ...invoiceData,
+      settings: {
+        invoiceWatermark: invoiceWatermark,
+        templateId: selectedTemplate
+      }
+    }, UserData); // Pass UserData as second parameter
+  };
+  const htmlContent = generateHTMLContent();
 
   const handleGeneratePdf = async () => {
     if (isGeneratingPdf) return;
@@ -115,6 +131,10 @@ const htmlContent = generateInvoiceHTML({
 
   const selectTemplate = (templateId) => {
     setSelectedTemplate(templateId);
+    // Close modal immediately after selection for better UX
+    setTimeout(() => {
+      closeSettingsModal();
+    }, 300);
   };
 
   const TemplateOption = ({ template }) => (
@@ -130,7 +150,7 @@ const htmlContent = generateInvoiceHTML({
           styles.templateName,
           selectedTemplate === template.id && styles.templateNameSelected
         ]}>
-          {template.name}
+          {template.name||"Standard Template"}
           {template.isDefault && (
             <Text style={styles.defaultBadge}> • Default</Text>
           )}
@@ -154,35 +174,24 @@ const htmlContent = generateInvoiceHTML({
         <Text style={styles.watermarkTitle}>Watermark Logo</Text>
         <Text style={styles.watermarkDescription}>
           {invoiceWatermark 
-            ? "ANU CRACKERS watermark is visible" 
+            ? `${COMPANYINFO.name||"Your Name"} watermark is visible` 
             : "Watermark is hidden"
           }
         </Text>
       </View>
-      <Switch
-        value={invoiceWatermark}
-        onValueChange={toggleWatermark}
-        trackColor={{ false: "#767577", true: "#81b0ff" }}
-        thumbColor={invoiceWatermark ? "#f5dd4b" : "#f4f3f4"}
-      />
+      <TouchableOpacity
+        style={[
+          styles.switchContainer,
+          invoiceWatermark && styles.switchContainerOn
+        ]}
+        onPress={toggleWatermark}
+      >
+        <View style={[
+          styles.switchThumb,
+          invoiceWatermark && styles.switchThumbOn
+        ]} />
+      </TouchableOpacity>
     </View>
-  );
-
-  const Switch = ({ value, onValueChange, trackColor, thumbColor }) => (
-    <TouchableOpacity
-      style={[
-        styles.switchContainer,
-        value && styles.switchContainerOn,
-        { backgroundColor: value ? trackColor?.true : trackColor?.false }
-      ]}
-      onPress={onValueChange}
-    >
-      <View style={[
-        styles.switchThumb,
-        value && styles.switchThumbOn,
-        { backgroundColor: thumbColor }
-      ]} />
-    </TouchableOpacity>
   );
 
   return (
@@ -199,7 +208,9 @@ const htmlContent = generateInvoiceHTML({
         
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Invoice Preview</Text>
-          <Text style={styles.headerSubtitle}>ANU CRACKERS</Text>
+          <Text style={styles.headerSubtitle}>
+            {invoiceTemplates.find(t => t.id === selectedTemplate)?.name||"Standard Template"}
+          </Text>
         </View>
 
         <TouchableOpacity 
@@ -214,7 +225,7 @@ const htmlContent = generateInvoiceHTML({
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>
-            {invoiceData.products?.length || 0}
+            {invoiceData.items?.length || 0}
           </Text>
           <Text style={styles.statLabel}>Items</Text>
         </View>
@@ -227,11 +238,7 @@ const htmlContent = generateInvoiceHTML({
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <MaterialIcons 
-            name="branding-watermark" 
-            size={20} 
-            color={invoiceWatermark ? COLORS.primary : '#ccc'} 
-          />
+           <Text style={{fontSize: 16,fontWeight: 'bold'}}>{invoiceWatermark?'On':'Off'}</Text>
           <Text style={styles.statLabel}>Watermark</Text>
         </View>
       </View>
@@ -239,6 +246,7 @@ const htmlContent = generateInvoiceHTML({
       {/* WebView Preview */}
       <View style={styles.previewContainer}>
         <WebView
+          key={`webview-${selectedTemplate}-${invoiceWatermark}`} // Force re-render on template/watermark change
           originWhitelist={['*']}
           source={{ html: htmlContent }}
           style={styles.webview}
@@ -253,34 +261,35 @@ const htmlContent = generateInvoiceHTML({
       </View>
 
       {/* CTA Section */}
-      <View style={styles.ctaContainer}>
-        <View style={styles.ctaButtons}>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={openSettingsModal}
-          >
-            <MaterialIcons name="design-services" size={18} color={COLORS.primary} />
-            <Text style={styles.secondaryButtonText}>
-              Template
-            </Text>
-          </TouchableOpacity>
+{/* CTA Section */}
+<View style={styles.ctaContainer}>
+  <View style={styles.ctaButtons}>
+    <TouchableOpacity
+      style={styles.secondaryButton}
+      onPress={openSettingsModal}
+    >
+      <MaterialIcons name="design-services" size={18} color={COLORS.primary} />
+      <Text style={styles.secondaryButtonText}>
+        Change Template
+      </Text>
+    </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.generateButton, isGeneratingPdf && styles.generateButtonDisabled]}
-            onPress={handleGeneratePdf}
-            disabled={isGeneratingPdf}
-          >
-            {isGeneratingPdf ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <>
-                <FontAwesome name="file-pdf-o" size={18} color="#fff" />
-                <Text style={styles.generateButtonText}>Generate PDF</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+    <TouchableOpacity
+      style={[styles.generateButton, isGeneratingPdf && styles.generateButtonDisabled]}
+      onPress={handleGeneratePdf}
+      disabled={isGeneratingPdf}
+    >
+      {isGeneratingPdf ? (
+        <ActivityIndicator color="#fff" size="small" />
+      ) : (
+        <>
+          <FontAwesome name="file-pdf-o" size={18} color="#fff" />
+          <Text style={styles.generateButtonText}>Generate PDF</Text>
+        </>
+      )}
+    </TouchableOpacity>
+  </View>
+</View>
 
       {/* Settings Modal */}
       <Modal
@@ -332,9 +341,20 @@ const htmlContent = generateInvoiceHTML({
                   • Watermark: {invoiceWatermark ? 'ENABLED' : 'DISABLED'}
                 </Text>
                 <Text style={styles.infoText}>
-                  • Items: {invoiceData.products?.length || 0}
+                  • Items: {invoiceData.items?.length || 0}
+                </Text>
+                <Text style={styles.infoText}>
+                  • Total: ₹{invoiceData.totals?.grandTotal?.toFixed(2) || '0.00'}
                 </Text>
               </View>
+
+              {/* Apply Changes Button */}
+              <TouchableOpacity
+                style={styles.applyButton}
+                onPress={closeSettingsModal}
+              >
+                <Text style={styles.applyButtonText}>Apply Changes</Text>
+              </TouchableOpacity>
             </ScrollView>
           </Animated.View>
         </View>
@@ -448,62 +468,62 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   ctaContainer: {
-    padding: 20,
-    backgroundColor: COLORS.background,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderColor,
+  paddingHorizontal: 20,
+  paddingVertical: 16,
+  backgroundColor: COLORS.background,
+  borderTopWidth: 1,
+  borderTopColor: COLORS.borderColor,
+},
+ctaButtons: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 12,
+},
+secondaryButton: {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 14,
+  paddingHorizontal: 16,
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: COLORS.primary,
+  backgroundColor: '#fff',
+  gap: 8,
+},
+secondaryButtonText: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: COLORS.primary,
+},
+generateButton: {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 14,
+  paddingHorizontal: 16,
+  borderRadius: 12,
+  backgroundColor: COLORS.primary,
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 2,
   },
-  ctaButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  generateButton: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginLeft: 12,
-    backgroundColor: COLORS.primary,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  generateButtonDisabled: {
-    backgroundColor: COLORS.textSecondary,
-  },
-  generateButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  secondaryButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    backgroundColor: '#fff',
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginLeft: 6,
-  },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  elevation: 4,
+  gap: 8,
+},
+generateButtonDisabled: {
+  backgroundColor: COLORS.textSecondary,
+},
+generateButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '600',
+},
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -608,6 +628,7 @@ const styles = StyleSheet.create({
   watermarkOption: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 12,
     borderRadius: 8,
     backgroundColor: '#f8fafc',
@@ -632,6 +653,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     padding: 2,
+    backgroundColor: '#767577',
     justifyContent: 'center',
   },
   switchContainerOn: {
@@ -652,6 +674,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.primary,
+    marginBottom: 16,
   },
   infoTitle: {
     fontSize: 16,
@@ -664,6 +687,18 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 4,
     lineHeight: 20,
+  },
+  applyButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

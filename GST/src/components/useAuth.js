@@ -1,38 +1,42 @@
-import { useEffect, useState, useCallback } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ToastAndroid } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+  import { useEffect, useState, useCallback } from "react";
+  import AsyncStorage from "@react-native-async-storage/async-storage";
+  import { ToastAndroid } from "react-native";
+  import { useNavigation } from "@react-navigation/native";
 
-// Export a custom hook
-const useAuth = () => {
-  const [userName, setUserName] = useState("User");
-  const navigation = useNavigation();
+  // Export a custom hook
+  const useAuth = () => {
+    const [userName, setUserName] = useState("User");
+    const [UserData, setUserData] = useState(null);
+    const navigation = useNavigation();
 
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userData = await AsyncStorage.getItem("userData");
-        if (userData) {
-          const user = JSON.parse(userData);
-          setUserName(user.username || "User");
-        } else {
+    useEffect(() => {
+      const loadUser = async () => {
+        try {
+          const userData = await AsyncStorage.getItem("userData");
+          if (userData) {
+            const user = JSON.parse(userData);
+            setUserData(user);
+            setUserName(user.name || "User");
+          } else {
+            setUserName("User");
+            setUserData(null);
+          }
+        } catch (err) {
           setUserName("User");
+          setUserData(null);
         }
-      } catch (err) {
-        setUserName("User");
-      }
-    };
-    loadUser();
-  }, []);
+      };
+      loadUser();
+    }, []);
 
-  // Memoized logout handler
-  const handleLogout = useCallback(async () => {
-    await AsyncStorage.removeItem('userData');
-    navigation.navigate("Login");
-    ToastAndroid.show("Logged out successfully", ToastAndroid.SHORT);
-  }, [navigation]);
+    // Memoized logout handler
+    const handleLogout = useCallback(async () => {
+      await AsyncStorage.removeItem('userData');
+      navigation.navigate("Login");
+      ToastAndroid.show("Logged out successfully", ToastAndroid.SHORT);
+    }, [navigation]);
 
-  return { userName, handleLogout };
-};
+    return { userName,UserData, handleLogout };
+  };
 
-export default useAuth;
+  export default useAuth;

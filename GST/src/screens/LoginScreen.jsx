@@ -26,6 +26,8 @@ import { COLORS } from "../constants/colors";
 import { styles } from "../styles/ModernLoginStyles";
 import { IMAGE } from "../constants/images";
 import { validateEmail } from "../Utils/Validator";
+import axios from "axios";
+import { LOGIN } from "../constants/url";
 
 const { width, height } = Dimensions.get("window");
 
@@ -39,26 +41,84 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
 
-  useEffect(() => {
-    (async () => {
-      const rememberedUsername = await AsyncStorage.getItem(
-        "rememberedUsername"
-      );
-      const rememberedPassword = await AsyncStorage.getItem(
-        "rememberedPassword"
-      );
-      if (rememberedUsername && rememberedPassword) {
-        setUsername(rememberedUsername);
-        setPassword(rememberedPassword);
-        setRememberMe(true);
-      }
-    })();
-  }, []);
+useEffect(() => {
+  (async () => {
+    const rememberedUsername = await AsyncStorage.getItem("rememberedUsername");
+    const rememberedPassword = await AsyncStorage.getItem("rememberedPassword");
+
+    if (rememberedUsername && rememberedPassword) {
+      setEmail(rememberedUsername); // ✅ FIXED
+      setPassword(rememberedPassword);
+      setRememberMe(true);
+    }
+  })();
+}, []);
+
+
 const handleLogin = async () => {
-  
-  navigation.navigate("Home");
+  // Reset API error
+  setApieror("");
+
+  // 🔍 Validation
+  if (!Email.trim() || !password.trim()) {
+    setApieror("Email and password are required.");
+    ToastAndroid.show("Email and password are required.", ToastAndroid.SHORT);
+    return;
+  }
+
+  if (!validateEmail(Email)) {
+    setErrors((prev) => ({ ...prev, Email: "Please enter a valid email address" }));
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+
+    // 📨 API Call
+    const response = await axios.post(LOGIN, {
+      email: Email.trim(),
+      password: password.trim(),
+    });
+
+    console.log("✅ Login Response:", response.data);
+
+    const resData = response.data;
+
+    if (resData.status === "success") {
+      // 🎯 Save login data
+      const userData = resData.data;
+
+      await AsyncStorage.setItem("userData", JSON.stringify(userData));
+
+      // 📦 Handle Remember Me
+      if (rememberMe) {
+        await AsyncStorage.setItem("rememberedUsername", Email.trim());
+        await AsyncStorage.setItem("rememberedPassword", password.trim());
+      }else {
+        await AsyncStorage.multiRemove(["rememberedUsername", "rememberedPassword"]);
+      }
 
 
+      ToastAndroid.show("Login successful!", ToastAndroid.SHORT);
+
+      // 🔁 Navigate to your main screen (Dashboard or Home)
+      navigation.replace("Home"); // Change "Dashboard" to your actual route name
+    } else if (resData.status === "error") {
+      // ❌ API error from server
+      setApieror(resData.message || "Login failed. Please try again.");
+      ToastAndroid.show(resData.message, ToastAndroid.SHORT);
+    } else {
+      // ⚠️ Unexpected response
+      setApieror("Unexpected response. Please try again later.");
+      ToastAndroid.show("Unexpected response.", ToastAndroid.SHORT);
+    }
+  } catch (error) {
+    console.log("❌ Login Error:", error.message);
+    setApieror("Network error. Please check your connection.");
+    ToastAndroid.show("Network error. Please check your connection.", ToastAndroid.SHORT);
+  } finally {
+    setIsLoading(false);
+  }
 };
 
 

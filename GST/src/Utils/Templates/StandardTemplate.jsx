@@ -1,4 +1,5 @@
 // StandardTemplate.jsx
+import { COMPANYINFO } from "../../constants/CompanyInfo";
 import { formatDate } from "../DateUtils";
 
 /**
@@ -15,7 +16,7 @@ const generateProductRows = (products) => {
     const amount = (caseQty * price).toFixed(2);
     totalCase += caseQty;
 
-    rows += `
+     rows += `
       <tr class="product-row">
         <td class="text-center">${sno}</td>
         <td class="text-left">${p.name || ""}</td>
@@ -186,21 +187,30 @@ function numberToWords(amount) {
 /**
  * Main function to generate the complete HTML invoice
  */
-export const generateInvoiceHTML = (invoiceData) => {
+export const generateInvoiceHTML = (invoiceData,userData) => {
   // Add safe defaults for all properties
   const { 
     customer = {}, 
     totals = {}, 
-    products = [], 
+    items = [], 
     settings = {},
     invoiceNumber = "N/A",
     date = new Date(),
     invoiceType = "Inside TN"
   } = invoiceData;
-  
-  const { rows: productRows, totalCase } = generateProductRows(products);
+
+  const safeUserData = userData || {
+    name: COMPANYINFO.name || "Your Company",
+    address: COMPANYINFO.address || "Company Address",
+    gst: COMPANYINFO.gst || "GST Number",
+    email: COMPANYINFO.email || "email@company.com", 
+    phone: COMPANYINFO.phone || "Phone Number",
+    bill_footer: COMPANYINFO.BILL_FOOTER || "Thank you for your business",
+    logoUrl: COMPANYINFO.logo || ""
+  };
+  const { rows: productRows, totalCase } = generateProductRows(items);
   const taxRows = generateTaxRows(invoiceData);
-  const logoUrl = "https://anucrackers.com/anucrackersog.png";
+  // const logoUrl = "https://anucrackers.com/anucrackersog.png";
   
   // Get watermark setting, default to true if not provided
   const watermarkEnabled = settings.invoiceWatermark !== false;
@@ -211,9 +221,9 @@ export const generateInvoiceHTML = (invoiceData) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Invoice - ANU CRACKERS</title>
+      <title>Invoice - ${safeUserData.name}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
         
         * {
           margin: 0;
@@ -222,11 +232,11 @@ export const generateInvoiceHTML = (invoiceData) => {
         }
         
         body {
-          font-family: 'Inter', sans-serif;
+          font-family: 'Poppins', sans-serif;
           font-size: 12px;
           line-height: 1.4;
-          color: #333;
-          background: #f5f5f5;
+          color: #000;
+          background: #ffffff;
           padding: 10px;
         }
         
@@ -234,24 +244,24 @@ export const generateInvoiceHTML = (invoiceData) => {
           max-width: 800px;
           margin: 0 auto;
           background: white;
-          border: 1px solid #e0e0e0;
+          border: 1px solid gray;
           border-radius: 4px;
           overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 8px ffffff;
         }
         
 
         /* Header Section - Very Light Colors */
         .invoice-header {
-          background: #fafafa;
+          background: white;
           padding: 20px 30px;
           border-bottom: 1px solid #e0e0e0;
         }
         
         .company-info {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
+            display: flex;
+            justify-content: center;
+            text-align: center;
         }
         
         .logo-section {
@@ -281,30 +291,30 @@ export const generateInvoiceHTML = (invoiceData) => {
           font-size: 20px;
           font-weight: 700;
           margin-bottom: 4px;
-          color: #333;
+          color: #000;
         }
         
         .company-details p {
           font-size: 10px;
-          color: #666;
+          color: #000;
           margin-bottom: 2px;
         }
         
         .gst-badge {
-          background: #f0f0f0;
+          background: #ffffff;
           padding: 4px 8px;
           border-radius: 3px;
           font-size: 9px;
           font-weight: 600;
-          color: #666;
+          color: #000;
           display: inline-block;
           margin-top: 5px;
-          border: 1px solid #ddd;
+          border: 1px solid gray;
         }
         
         /* Invoice Title */
         .invoice-title-section {
-          background: #f5f5f5;
+          background: #ffffff;
           padding: 10px 30px;
           display: flex;
           justify-content: space-between;
@@ -315,17 +325,17 @@ export const generateInvoiceHTML = (invoiceData) => {
         .invoice-title {
           font-size: 16px;
           font-weight: 600;
-          color: #333;
+          color: #000;
         }
         
         .invoice-badge {
-          background: #e8e8e8;
-          color: #666;
+          background: #43383863;
+          color: #000;
           padding: 4px 8px;
           border-radius: 3px;
           font-size: 10px;
           font-weight: 500;
-          border: 1px solid #ddd;
+          border: 1px solid gray;
         }
         
         /* Main Content */
@@ -341,9 +351,9 @@ export const generateInvoiceHTML = (invoiceData) => {
           gap: 20px;
           margin-bottom: 20px;
           padding: 15px;
-          background: #fafafa;
+          background: #ffffff;
           border-radius: 4px;
-          border: 1px solid #e8e8e8;
+          border: 1px solid #43383863;
         }
         
         .bill-to, .invoice-meta {
@@ -351,13 +361,13 @@ export const generateInvoiceHTML = (invoiceData) => {
         }
         
         .bill-to {
-          border-right: 1px dashed #d0d0d0;
+          border-right: 1px dashed #43383863;
         }
         
         .section-label {
           font-size: 10px;
           font-weight: 600;
-          color: #666;
+          color: #000;
           text-transform: uppercase;
           margin-bottom: 8px;
           display: block;
@@ -366,12 +376,12 @@ export const generateInvoiceHTML = (invoiceData) => {
         .customer-name {
           font-size: 14px;
           font-weight: 600;
-          color: #333;
+          color: #000;
           margin-bottom: 6px;
         }
         
         .customer-details {
-          color: #666;
+          color: #000;
           font-size: 11px;
           line-height: 1.4;
         }
@@ -380,7 +390,7 @@ export const generateInvoiceHTML = (invoiceData) => {
           background: white;
           border-radius: 4px;
           padding: 12px;
-          border: 1px solid #e8e8e8;
+          border: 1px solid #43383863;
         }
         
         .meta-item {
@@ -388,7 +398,7 @@ export const generateInvoiceHTML = (invoiceData) => {
           justify-content: space-between;
           align-items: center;
           padding: 4px 0;
-          border-bottom: 1px solid #f0f0f0;
+          border-bottom: 1px solid #43383863;
         }
         
         .meta-item:last-child {
@@ -397,17 +407,17 @@ export const generateInvoiceHTML = (invoiceData) => {
         
         .meta-label {
           font-weight: 500;
-          color: #666;
+          color: #000;
           font-size: 10px;
         }
         
         .meta-value {
           font-weight: 600;
-          color: #333;
+          color: #000;
           font-size: 11px;
         }
                 /* Background Watermark on Products Table */
-        ${generateWatermarkCSS(watermarkEnabled, logoUrl)}
+        ${generateWatermarkCSS(watermarkEnabled, safeUserData.logo_url)}
         
         /* Products Table - Fixed opacity issue */
         .products-table {
@@ -420,14 +430,14 @@ export const generateInvoiceHTML = (invoiceData) => {
         }
         
         .products-table thead {
-          background: #f5f5f5;
+          background: #43383863;
         }
         
         .products-table th {
           padding: 8px 6px;
           text-align: left;
           font-weight: 600;
-          color: #333;
+          color: #000;
           text-transform: uppercase;
           letter-spacing: 0.3px;
           border: none;
@@ -470,7 +480,7 @@ export const generateInvoiceHTML = (invoiceData) => {
         }
         
         .product-row:hover {
-          background: #fafafa;
+          background: #43383863;
         }
         
         .empty-row td {
@@ -483,8 +493,8 @@ export const generateInvoiceHTML = (invoiceData) => {
         
         /* Totals Section - Very Light */
         .totals-section {
-          background: #fafafa;
-          border: 1px solid #e0e0e0;
+          background: #43383863;
+          border: 1px solid #43383863;
           border-radius: 4px;
           overflow: hidden;
           margin: 15px 0;
@@ -497,7 +507,7 @@ export const generateInvoiceHTML = (invoiceData) => {
         }
         
         .totals-table td {
-          border: 1px solid #e0e0e0;
+          border: 1px solid #43383863;
         }
         
         .amount-words {
@@ -507,14 +517,14 @@ export const generateInvoiceHTML = (invoiceData) => {
         
         .amount-text {
           font-size: 9px;
-          color: #666;
+          color: #000;
           line-height: 1.3;
         }
         
         .total-label{
           padding: 8px 10px;
           font-weight: 600;
-          color: #333;
+          color: #000;
           background: white;
           font-size: 10px;
         }
@@ -542,48 +552,57 @@ export const generateInvoiceHTML = (invoiceData) => {
           font-size: 10px;        
         }
         .subtotal-row td {
-          border-bottom: 1px solid #e0e0e0;
+          border-bottom: 1px solid #43383863;
         }
         
         .tax-row .total-label,
         .tax-row .total-value {
-          background: #fafafa;
+          background: #ffffff;
         }
         
         .grand-total-row .grand-total-label,
         .grand-total-row .grand-total-value {
           background: #f0f0f0;
-          color: #333;
+          color: #000;
           font-size: 11px;
-          border: 1px solid #e0e0e0;
+          border: 1px solid #43383863;
         }
         
         /* Bottom CTA Section */
         .bottom-cta-section {
           margin-top: 25px;
           padding-top: 20px;
-          border-top: 1px dashed #d0d0d0;
+          border-top: 1px dashed #43383863;
         }
         
         /* Signature Section */
         .signature-section {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin-bottom: 20px;
+          display: flex;
+          justify-content: flex-end;
+          margin-bottom: 2px;
         }
         
-        .signature-box {
+        .signature-container {
           text-align: center;
+          width: 300px;
         }
         
         .signature-line {
-          margin-top: 40px;
+          margin-top: 30px;
           padding-top: 8px;
-          border-top: 1px solid #d0d0d0;
-          color: #666;
+          border-top: 1px solid #43383863;
+          color: #000;
           font-weight: 600;
           font-size: 11px;
+          width: 100%;
+        }
+        
+        .company-signature {
+          margin-top: 5px;
+          font-weight: 600;
+          font-size: 11px;
+          text-align: center;
+          color: #000;
         }
         
         /* Contact Info */
@@ -600,13 +619,13 @@ export const generateInvoiceHTML = (invoiceData) => {
           align-items: center;
           gap: 5px;
           font-size: 10px;
-          color: #666;
+          color: #000;
         }
         
         .contact-icon {
           width: 12px;
           height: 12px;
-          color: #666;
+          color: #000;
         }
         
         /* Footer Note */
@@ -616,20 +635,20 @@ export const generateInvoiceHTML = (invoiceData) => {
           background: #fafafa;
           border-radius: 4px;
           margin: 20px 0 15px;
-          color: #666;
-          border: 1px solid #e8e8e8;
+          color: #000;
+          border: 1px solid #43383863;
         }
         
         .footer-note h3 {
           font-size: 12px;
           font-weight: 700;
-          color: #333;
+          color: #000;
           margin-bottom: 8px;
         }
         
         .footer-note p {
           font-size: 10px;
-          color: #666;
+          color: #000;
           line-height: 1.4;
           margin-bottom: 5px;
         }
@@ -637,10 +656,22 @@ export const generateInvoiceHTML = (invoiceData) => {
         .footer-brand {
           text-align: center;
           padding: 12px;
-          color: #999;
+          color: #000;
           font-size: 9px;
-          border-top: 1px solid #e8e8e8;
+          border-top: 1px solid #43383863;
           margin-top: 15px;
+        }
+        
+        /* Auto-generated Notice */
+        .auto-generated-notice {
+          text-align: center;
+          margin: 10px 0 5px;
+          padding: 8px;
+          font-size: 9px;
+          color: #666;
+          font-style: italic;
+          background: #f9f9f9;
+          border-radius: 3px;
         }
         
         /* Print Optimization */
@@ -661,20 +692,22 @@ export const generateInvoiceHTML = (invoiceData) => {
           
           .invoice-content {
             padding: 15px 20px;
+
           }
           
           .invoice-header {
-            background: #fafafa !important;
+            background: #ffffff !important;
             -webkit-print-color-adjust: exact;
           }
           
           .invoice-title-section {
-            background: #f5f5f5 !important;
+
+            background: #ffffff !important;
             -webkit-print-color-adjust: exact;
           }
           
           .products-table thead {
-            background: #f5f5f5 !important;
+            background: #ffffff !important;
             -webkit-print-color-adjust: exact;
           }
           
@@ -698,19 +731,12 @@ export const generateInvoiceHTML = (invoiceData) => {
           
           .bill-to {
             border-right: none;
-            border-bottom: 1px dashed #d0d0d0;
+            border-bottom: 1px dashed #43383863;
             padding-bottom: 15px;
           }
           
-          .company-info {
-            flex-direction: column;
-            text-align: center;
-            gap: 10px;
-          }
-          
-          .signature-section {
-            grid-template-columns: 1fr;
-            gap: 15px;
+          .signature-container {
+            width: 100%;
           }
           
           .products-table {
@@ -734,15 +760,11 @@ export const generateInvoiceHTML = (invoiceData) => {
         <!-- Header Section -->
         <div class="invoice-header">
           <div class="company-info">
-            <div class="logo-section">
-              <div class="logo">
-                <img src="${logoUrl}" alt="ANU CRACKERS">
-              </div>
+
               <div class="company-details">
-                <h1>ANU CRACKERS</h1>
-                <p>3/44, Naduvapatti Mein Road, Guhanparai, Sivakasi-626160</p>
-                <div class="gst-badge">GST: 33ABZFA3528P1ZQ</div>
-              </div>
+                <h1>${safeUserData.name.toUpperCase()}</h1>
+                <p>${safeUserData.address}</p>
+                <div class="gst-badge">${safeUserData.gst}</div>
             </div>
           </div>
         </div>
@@ -780,7 +802,7 @@ export const generateInvoiceHTML = (invoiceData) => {
               </div>
               <div class="meta-item">
                 <span class="meta-label">Items</span>
-                <span class="meta-value">${products.length}</span>
+                <span class="meta-value">${items.length}</span>
               </div>
             </div>
           </div>
@@ -819,15 +841,12 @@ export const generateInvoiceHTML = (invoiceData) => {
           <div class="bottom-cta-section">
             <!-- Signature Section -->
             <div class="signature-section">
-              <div class="signature-box">
+              <div class="signature-container">
                 <div class="signature-line">
-                  Receiver's Signature
+                  &nbsp;
                 </div>
-              </div>
-              <div class="signature-box">
-                <div class="signature-line">
-                  For ANU CRACKERS<br>
-                  Authorised Signatory
+                <div class="company-signature">
+                  For ${safeUserData.name.toUpperCase()}
                 </div>
               </div>
             </div>
@@ -838,21 +857,26 @@ export const generateInvoiceHTML = (invoiceData) => {
                 <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
                 </svg>
-                devafireworks@gmail.com
+                ${safeUserData.email}
               </div>
               <div class="contact-item">
                 <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
                 </svg>
-                +91 99949 71990
+                ${safeUserData.phone}
               </div>
             </div>
             
             <!-- Footer Brand -->
             <div class="footer-brand">
-              ANU CRACKERS • Quality Fireworks Since 1995 • www.anucrackers.com
+              ${safeUserData.bill_footer}
             </div>
           </div>
+        </div>
+        
+        <!-- Auto-generated Notice - Final Position -->
+        <div class="auto-generated-notice">
+          ** This is an autogenerated Invoice hence signature is not required **
         </div>
       </div>
                     <div class="table-watermark"/>

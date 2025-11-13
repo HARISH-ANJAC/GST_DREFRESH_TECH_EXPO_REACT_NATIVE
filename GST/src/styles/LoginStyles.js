@@ -36,7 +36,7 @@ export const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: COLORS.text,
+    color: COLORS.primary,
     marginBottom: 6,
     fontWeight: "600",
   },
