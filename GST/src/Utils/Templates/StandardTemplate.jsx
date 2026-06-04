@@ -1,5 +1,7 @@
 // StandardTemplate.jsx
+import { Image } from 'react-native';
 import { COMPANYINFO } from "../../constants/CompanyInfo";
+import { IMAGE } from "../../constants/images";
 import { formatDate } from "../DateUtils";
 
 /**
@@ -116,7 +118,7 @@ const generateTaxRows = (invoiceData) => {
 const generateWatermarkCSS = (watermarkEnabled, logoUrl) => {
   console.log("watermark : ", watermarkEnabled);
   
-  if (!watermarkEnabled) {
+  if (!watermarkEnabled || !logoUrl) {
     return `
       .table-watermark {
         display: none !important;
@@ -199,18 +201,18 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
     invoiceType = "Inside TN"
   } = invoiceData;
 
-  const safeUserData = userData || {
-    name: COMPANYINFO.name || "Your Company",
-    address: COMPANYINFO.address || "Company Address",
-    gst: COMPANYINFO.gst || "GST Number",
-    email: COMPANYINFO.email || "email@company.com", 
-    phone: COMPANYINFO.phone || "Phone Number",
-    bill_footer: COMPANYINFO.BILL_FOOTER || "Thank you for your business",
-    logoUrl: COMPANYINFO.logo || ""
+  const safeUserData = {
+    name: userData?.name || COMPANYINFO.name || "Your Company",
+    address: userData?.address || COMPANYINFO.address || "Company Address",
+    gst: userData?.gst || COMPANYINFO.gst || "GST Number",
+    email: userData?.email || COMPANYINFO.email || "email@company.com",
+    phone: userData?.phone || COMPANYINFO.phone || "Phone Number",
+    bill_footer: userData?.bill_footer || COMPANYINFO.BILL_FOOTER || "Thank you for your business",
+    logo_url: userData?.logo_url || COMPANYINFO.logo || Image.resolveAssetSource(IMAGE.Logo).uri
   };
   const { rows: productRows, totalCase } = generateProductRows(items);
   const taxRows = generateTaxRows(invoiceData);
-  // const logoUrl = "https://anucrackers.com/anucrackersog.png";
+  const logoUrl = safeUserData.logo_url;
   
   // Get watermark setting, default to true if not provided
   const watermarkEnabled = settings.invoiceWatermark !== false;
@@ -417,7 +419,7 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
           font-size: 11px;
         }
                 /* Background Watermark on Products Table */
-        ${generateWatermarkCSS(watermarkEnabled, safeUserData.logo_url)}
+        ${generateWatermarkCSS(watermarkEnabled, logoUrl)}
         
         /* Products Table - Fixed opacity issue */
         .products-table {
@@ -783,10 +785,11 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
               <span class="section-label">Bill To</span>
               <div class="customer-name">${customer?.name || "N/A"}</div>
               <div class="customer-details">
-                ${customer?.address ? `<div>${customer.address}</div>` : ""}
                 ${customer?.phone ? `<div>Phone: ${customer.phone}</div>` : ""}
-                ${customer?.aadhar ? `<div>Aadhar: ${customer.aadhar}</div>` : ""}
+                ${customer?.email ? `<div>Email: ${customer.email}</div>` : ""}
+                ${customer?.address ? `<div>${customer.address}</div>` : ""}
                 ${customer?.gst ? `<div>GSTIN: ${customer.gst}</div>` : ""}
+                ${customer?.aadhar ? `<div>Aadhar: ${customer.aadhar}</div>` : ""}
               </div>
             </div>
             

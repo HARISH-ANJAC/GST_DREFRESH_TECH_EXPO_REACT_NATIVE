@@ -45,7 +45,7 @@ const DeleteButton = ({ onPress }) => {
 const BillCard = ({ item, onPress, onDelete }) => {
   const swipeableRef = useRef(null);
   const { UserData } = useAuth();
-  
+
   const formatTotal = (total) => {
     if (!total) return "0.00";
     const numberTotal = typeof total === "string" ? parseFloat(total) : total;
@@ -85,8 +85,8 @@ const BillCard = ({ item, onPress, onDelete }) => {
             <Text style={styles.infoValue}>#{item.invoiceNo}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Mobile:</Text>
-            <Text style={styles.infoValue}>{item.mobile}</Text>
+            <Text style={styles.infoLabel}>Phone:</Text>
+            <Text style={styles.infoValue}>{item.customerPhone || item.mobile}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Date:</Text>
@@ -135,24 +135,48 @@ const HomeScreen = () => {
   const UPDATE_INVOICE_STATUS_URL = "https://drefresh.com/h/h/update_invoice_status.php";
 
   const handlePreview = (item) => {
+    // Parse invoiceData — could be JSON string, array (new API), or object (old format)
+    let rawData = item.invoiceData;
+    if (typeof rawData === "string") {
+      try { rawData = JSON.parse(rawData); } catch (e) { rawData = []; }
+    }
+    let rawItems = Array.isArray(rawData) ? rawData : rawData?.items || [];
+
+    // Map API field names → template field names
+    const items = rawItems.map((p, idx) => ({
+      id: idx + 1,
+      name: p.item || p.name || "",
+      hsn: p.hsn || "",
+      per: p.per || "BOX",
+      caseQty: p.qty || p.caseQty || 0,
+      price: p.rate || p.price || 0,
+      amount: p.amount || ((p.qty || p.caseQty || 0) * (p.rate || p.price || 0)),
+    }));
+
+    const subTotal = items.reduce((sum, p) => sum + p.amount, 0);
+    const isInsideTN = (item.invoiceType || "") === "Inside TN";
+    const cgst = isInsideTN ? subTotal * 0.09 : 0;
+    const sgst = isInsideTN ? subTotal * 0.09 : 0;
+    const igst = isInsideTN ? 0 : subTotal * 0.18;
+
     const previewData = {
       ...item,
       customer: {
         name: item.customerName,
-        phone: item.mobile,
-        address: "",
-        email: "",
-        gst: "",
-        aadhar: "",
+        phone: item.customerPhone || item.mobile,
+        address: item.customerAddress || item.address || "",
+        email: item.customerEmail || item.email || "",
+        gst: item.customerGst || item.gst || "",
+        aadhar: item.customerAadhar || item.aadhar || "",
       },
       totals: {
-        subTotal: item.invoiceData?.subtotal || 0,
-        grandTotal: item.total || 0,
-        cgst: item.invoiceData?.cgst || 0,
-        sgst: item.invoiceData?.sgst || 0,
-        igst: item.invoiceData?.igst || 0,
+        subTotal,
+        grandTotal: parseFloat(item.total) || subTotal + cgst + sgst + igst,
+        cgst,
+        sgst,
+        igst,
       },
-      items: item.invoiceData?.items || [],
+      items,
       invoiceNumber: item.invoiceNumber,
       date: item.date,
       invoiceType: item.invoiceType,
@@ -173,7 +197,7 @@ const HomeScreen = () => {
       date: item.date,
       type: item.type,
     });
-    
+
     setSelectedBill(item);
     setModalVisible(true);
   };
@@ -184,7 +208,7 @@ const HomeScreen = () => {
 
     try {
       setDeletingId(selectedBill.id);
-      
+
       console.log("🔄 Starting delete process for bill:", {
         billId: selectedBill.id,
         invoiceNo: selectedBill.invoiceNo,
@@ -231,9 +255,9 @@ const HomeScreen = () => {
         console.warn("⚠️ API Warning:", response.data.message);
         // Even if warning, remove from local state as the operation might have partial success
         setBills(prevBills => prevBills.filter(bill => bill.id !== selectedBill.id));
-        
+
         Alert.alert("Warning", response.data.message || "Invoice might not exist or already deleted.");
-        
+
       } else {
         throw new Error(response.data.message || "Failed to delete invoice");
       }
@@ -244,7 +268,7 @@ const HomeScreen = () => {
         invoiceId: selectedBill?.id,
         userId: UserData?.USER_ID
       });
-      
+
       // Show error message to user
       if (error.response) {
         // Server responded with error status
@@ -315,7 +339,7 @@ const HomeScreen = () => {
     <>
       <View style={GLOBAL_STYLES.AppBarWrappercontainer}>
         <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-        
+
         {/* AppBar */}
         <View
           style={[
@@ -324,87 +348,90 @@ const HomeScreen = () => {
           ]}
         >
           <View style={GLOBAL_STYLES.appBarContent}>
-            {/* Left: Greeting */}
-            <View style={GLOBAL_STYLES.appBarLeft}>
+            {/* Row 1: Hi, | Home | Logout */}
+            <View style={GLOBAL_STYLES.appBarRow}>
               <Text style={GLOBAL_STYLES.greetingText}>Hi,</Text>
-              <Text style={GLOBAL_STYLES.userNameText}>
+              <Text style={GLOBAL_STYLES.appBarTitle}>Home</Text>
+              <TouchableOpacity
+                style={GLOBAL_STYLES.logoutButton}
+                onPress={handleLogout}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="logout" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Row 2: User Name */}
+            <View style={GLOBAL_STYLES.appBarNameRow}>
+              <Text
+                style={GLOBAL_STYLES.userNameText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {userName || "D Refresh Tech"}
               </Text>
             </View>
-
-            {/* Center: Title */}
-            <View style={GLOBAL_STYLES.appBarCenter}>
-              <Text style={GLOBAL_STYLES.appBarTitle}>Home</Text>
-            </View>
-
-            {/* Right: Logout */}
-            <TouchableOpacity
-              style={GLOBAL_STYLES.logoutButton}
-              onPress={handleLogout}
-              activeOpacity={0.8}
-            >
-              <MaterialIcons name="logout" size={20} color="#fff" />
-            </TouchableOpacity>
           </View>
         </View>
 
-{/* 📋 Main Content */}
-<View style={styles.mainContent}>
+        {/* 📋 Main Content */}
+        <View style={styles.mainContent}>
 
-  {/* 🌀 Loading State */}
-  {loading ? (
-    <View style={styles.loaderWrapper}>
-      <ActivityIndicator size="large" color={COLORS.primary} />
-      <Text style={styles.loadingText}>Loading invoices...</Text>
-    </View>
-  ) : errorMsg ? (
-    /* ⚠️ Error State */
-    <View style={styles.errorWrapper}>
-      <Text style={styles.errorText}>{errorMsg}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={fetchInvoices}>
-        <Text style={styles.retryText}>Retry</Text>
-      </TouchableOpacity>
-    </View>
-  ) : bills.length > 0 ? (
-    /* 📦 Data Available */
-    <FlatList
-      data={bills}
-      keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item }) => (
-        <BillCard
-          item={{
-            id: item.id,
-            type: item.invoiceType,
-            invoiceNo: item.invoiceNumber,
-            shopName: item.shopName,
-            customerName: item.customerName,
-            mobile: item.mobile,
-            total: item.total,
-            date: item.date,
-          }}
-          onPress={() => handlePreview(item)}
-          onDelete={handleDeleteBill}
-        />
-      )}
-      contentContainerStyle={[
-        styles.listContainer,
-        { paddingBottom: insets.bottom  },
-      ]}
-      ListHeaderComponent={
-        <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>All Bills</Text>
-          <Text style={styles.listItems}>{`Item(s): ${bills.length}`}</Text>
+          {/* 🌀 Loading State */}
+          {loading ? (
+            <View style={styles.loaderWrapper}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Loading invoices...</Text>
+            </View>
+          ) : errorMsg ? (
+            /* ⚠️ Error State */
+            <View style={styles.errorWrapper}>
+              <Text style={styles.errorText}>{errorMsg}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchInvoices}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : bills.length > 0 ? (
+            /* 📦 Data Available */
+            <FlatList
+              data={bills}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <BillCard
+                  item={{
+                    id: item.id,
+                    type: item.invoiceType,
+                    invoiceNo: item.invoiceNumber,
+                    shopName: item.shopName,
+                    customerName: item.customerName,
+                    mobile: item.mobile,
+                    customerPhone: item.customerPhone || item.mobile,
+                    total: item.total,
+                    date: item.date,
+                  }}
+                  onPress={() => handlePreview(item)}
+                  onDelete={handleDeleteBill}
+                />
+              )}
+              contentContainerStyle={[
+                styles.listContainer,
+                { paddingBottom: insets.bottom },
+              ]}
+              ListHeaderComponent={
+                <View style={styles.listHeader}>
+                  <Text style={styles.listTitle}>All Bills</Text>
+                  <Text style={styles.listItems}>{`Item(s): ${bills.length}`}</Text>
+                </View>
+              }
+              extraData={deletingId}
+            />
+          ) : (
+            /* 🈳 Empty List */
+            <View style={styles.emptyWrapper}>
+              <Text style={styles.emptyText}>No invoices found</Text>
+            </View>
+          )}
         </View>
-      }
-      extraData={deletingId}
-    />
-  ) : (
-    /* 🈳 Empty List */
-    <View style={styles.emptyWrapper}>
-      <Text style={styles.emptyText}>No invoices found</Text>
-    </View>
-  )}
-</View>
 
 
         {/* ➕ Floating Action Button */}

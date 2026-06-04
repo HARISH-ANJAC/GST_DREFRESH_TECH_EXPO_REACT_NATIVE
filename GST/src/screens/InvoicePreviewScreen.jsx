@@ -1,12 +1,12 @@
 // InvoicePreviewScreen.jsx
 import React, { useState, useRef } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  Dimensions, 
-  Text, 
-  TouchableOpacity, 
-  Alert, 
+import {
+  View,
+  StyleSheet,
+  Dimensions,
+  Text,
+  TouchableOpacity,
+  Alert,
   ActivityIndicator,
   Modal,
   ScrollView,
@@ -42,13 +42,13 @@ const InvoicePreviewScreen = () => {
     {
       id: 1,
       name: "Standard Template",
-      description: "Default ANU CRACKERS invoice template",
+      description: "Default invoice template",
       isDefault: true,
       generator: StandardTemplate
     },
     {
       id: 2,
-      name: "Professional Template", 
+      name: "Professional Template",
       description: "Clean and professional layout",
       isDefault: false,
       generator: ProfessionalTemplate
@@ -150,7 +150,7 @@ const InvoicePreviewScreen = () => {
           styles.templateName,
           selectedTemplate === template.id && styles.templateNameSelected
         ]}>
-          {template.name||"Standard Template"}
+          {template.name || "Standard Template"}
           {template.isDefault && (
             <Text style={styles.defaultBadge}> • Default</Text>
           )}
@@ -173,8 +173,8 @@ const InvoicePreviewScreen = () => {
       <View style={styles.watermarkInfo}>
         <Text style={styles.watermarkTitle}>Watermark Logo</Text>
         <Text style={styles.watermarkDescription}>
-          {invoiceWatermark 
-            ? `${COMPANYINFO.name||"Your Name"} watermark is visible` 
+          {invoiceWatermark
+            ? `${COMPANYINFO.name || "Your Name"} watermark is visible`
             : "Watermark is hidden"
           }
         </Text>
@@ -199,21 +199,21 @@ const InvoicePreviewScreen = () => {
       <StatusBar barStyle="dark-content" />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
           style={styles.headerButton}
         >
           <FontAwesome name="arrow-left" size={20} color={COLORS.primary} />
         </TouchableOpacity>
-        
+
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Invoice Preview</Text>
           <Text style={styles.headerSubtitle}>
-            {invoiceTemplates.find(t => t.id === selectedTemplate)?.name||"Standard Template"}
+            {invoiceTemplates.find(t => t.id === selectedTemplate)?.name || "Standard Template"}
           </Text>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={openSettingsModal}
           style={styles.settingsButton}
         >
@@ -238,7 +238,7 @@ const InvoicePreviewScreen = () => {
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-           <Text style={{fontSize: 16,fontWeight: 'bold'}}>{invoiceWatermark?'On':'Off'}</Text>
+          <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{invoiceWatermark ? 'On' : 'Off'}</Text>
           <Text style={styles.statLabel}>Watermark</Text>
         </View>
       </View>
@@ -261,35 +261,35 @@ const InvoicePreviewScreen = () => {
       </View>
 
       {/* CTA Section */}
-{/* CTA Section */}
-<View style={styles.ctaContainer}>
-  <View style={styles.ctaButtons}>
-    <TouchableOpacity
-      style={styles.secondaryButton}
-      onPress={openSettingsModal}
-    >
-      <MaterialIcons name="design-services" size={18} color={COLORS.primary} />
-      <Text style={styles.secondaryButtonText}>
-        Change Template
-      </Text>
-    </TouchableOpacity>
+      {/* CTA Section */}
+      <View style={styles.ctaContainer}>
+        <View style={styles.ctaButtons}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={openSettingsModal}
+          >
+            <MaterialIcons name="design-services" size={18} color={COLORS.primary} />
+            <Text style={styles.secondaryButtonText}>
+              Change Template
+            </Text>
+          </TouchableOpacity>
 
-    <TouchableOpacity
-      style={[styles.generateButton, isGeneratingPdf && styles.generateButtonDisabled]}
-      onPress={handleGeneratePdf}
-      disabled={isGeneratingPdf}
-    >
-      {isGeneratingPdf ? (
-        <ActivityIndicator color="#fff" size="small" />
-      ) : (
-        <>
-          <FontAwesome name="file-pdf-o" size={18} color="#fff" />
-          <Text style={styles.generateButtonText}>Generate PDF</Text>
-        </>
-      )}
-    </TouchableOpacity>
-  </View>
-</View>
+          <TouchableOpacity
+            style={[styles.generateButton, isGeneratingPdf && styles.generateButtonDisabled]}
+            onPress={handleGeneratePdf}
+            disabled={isGeneratingPdf}
+          >
+            {isGeneratingPdf ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <FontAwesome name="file-pdf-o" size={18} color="#fff" />
+                <Text style={styles.generateButtonText}>Generate PDF</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Settings Modal */}
       <Modal
@@ -299,11 +299,11 @@ const InvoicePreviewScreen = () => {
         onRequestClose={closeSettingsModal}
       >
         <View style={styles.modalOverlay}>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.modalContent,
-              { 
-                opacity: fadeAnim 
+              {
+                opacity: fadeAnim
               }
             ]}
           >
@@ -468,62 +468,62 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   ctaContainer: {
-  paddingHorizontal: 20,
-  paddingVertical: 16,
-  backgroundColor: COLORS.background,
-  borderTopWidth: 1,
-  borderTopColor: COLORS.borderColor,
-},
-ctaButtons: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 12,
-},
-secondaryButton: {
-  flex: 1,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingVertical: 14,
-  paddingHorizontal: 16,
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: COLORS.primary,
-  backgroundColor: '#fff',
-  gap: 8,
-},
-secondaryButtonText: {
-  fontSize: 14,
-  fontWeight: '600',
-  color: COLORS.primary,
-},
-generateButton: {
-  flex: 1,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingVertical: 14,
-  paddingHorizontal: 16,
-  borderRadius: 12,
-  backgroundColor: COLORS.primary,
-  shadowColor: '#000',
-  shadowOffset: {
-    width: 0,
-    height: 2,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderColor,
   },
-  shadowOpacity: 0.2,
-  shadowRadius: 4,
-  elevation: 4,
-  gap: 8,
-},
-generateButtonDisabled: {
-  backgroundColor: COLORS.textSecondary,
-},
-generateButtonText: {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: '600',
-},
+  ctaButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  secondaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: '#fff',
+    gap: 8,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  generateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    gap: 8,
+  },
+  generateButtonDisabled: {
+    backgroundColor: COLORS.textSecondary,
+  },
+  generateButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

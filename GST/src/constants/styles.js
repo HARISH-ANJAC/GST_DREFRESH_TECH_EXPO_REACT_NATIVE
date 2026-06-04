@@ -40,10 +40,18 @@ appBar: {
 },
 
 appBarContent: {
+  paddingHorizontal: 16,
+  paddingTop: 8,
+},
+
+appBarRow: {
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
-  paddingHorizontal: 16,
+},
+
+appBarNameRow: {
+  marginTop: 4,
 },
 
 appBarLeft: {
@@ -51,6 +59,7 @@ appBarLeft: {
   alignItems: "baseline",
   justifyContent:'space-between',
   gap: 4,
+  flexShrink: 1,
 },
 
 greetingText: {

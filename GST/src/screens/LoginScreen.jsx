@@ -41,85 +41,85 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
 
-useEffect(() => {
-  (async () => {
-    const rememberedUsername = await AsyncStorage.getItem("rememberedUsername");
-    const rememberedPassword = await AsyncStorage.getItem("rememberedPassword");
+  useEffect(() => {
+    (async () => {
+      const rememberedUsername = await AsyncStorage.getItem("rememberedUsername");
+      const rememberedPassword = await AsyncStorage.getItem("rememberedPassword");
 
-    if (rememberedUsername && rememberedPassword) {
-      setEmail(rememberedUsername); // ✅ FIXED
-      setPassword(rememberedPassword);
-      setRememberMe(true);
-    }
-  })();
-}, []);
-
-
-const handleLogin = async () => {
-  // Reset API error
-  setApieror("");
-
-  // 🔍 Validation
-  if (!Email.trim() || !password.trim()) {
-    setApieror("Email and password are required.");
-    ToastAndroid.show("Email and password are required.", ToastAndroid.SHORT);
-    return;
-  }
-
-  if (!validateEmail(Email)) {
-    setErrors((prev) => ({ ...prev, Email: "Please enter a valid email address" }));
-    return;
-  }
-
-  try {
-    setIsLoading(true);
-
-    // 📨 API Call
-    const response = await axios.post(LOGIN, {
-      email: Email.trim(),
-      password: password.trim(),
-    });
-
-    console.log("✅ Login Response:", response.data);
-
-    const resData = response.data;
-
-    if (resData.status === "success") {
-      // 🎯 Save login data
-      const userData = resData.data;
-
-      await AsyncStorage.setItem("userData", JSON.stringify(userData));
-
-      // 📦 Handle Remember Me
-      if (rememberMe) {
-        await AsyncStorage.setItem("rememberedUsername", Email.trim());
-        await AsyncStorage.setItem("rememberedPassword", password.trim());
-      }else {
-        await AsyncStorage.multiRemove(["rememberedUsername", "rememberedPassword"]);
+      if (rememberedUsername && rememberedPassword) {
+        setEmail(rememberedUsername); // ✅ FIXED
+        setPassword(rememberedPassword);
+        setRememberMe(true);
       }
+    })();
+  }, []);
 
 
-      ToastAndroid.show("Login successful!", ToastAndroid.SHORT);
+  const handleLogin = async () => {
+    // Reset API error
+    setApieror("");
 
-      // 🔁 Navigate to your main screen (Dashboard or Home)
-      navigation.replace("Home"); // Change "Dashboard" to your actual route name
-    } else if (resData.status === "error") {
-      // ❌ API error from server
-      setApieror(resData.message || "Login failed. Please try again.");
-      ToastAndroid.show(resData.message, ToastAndroid.SHORT);
-    } else {
-      // ⚠️ Unexpected response
-      setApieror("Unexpected response. Please try again later.");
-      ToastAndroid.show("Unexpected response.", ToastAndroid.SHORT);
+    // 🔍 Validation
+    if (!Email.trim() || !password.trim()) {
+      setApieror("Email and password are required.");
+      ToastAndroid.show("Email and password are required.", ToastAndroid.SHORT);
+      return;
     }
-  } catch (error) {
-    console.log("❌ Login Error:", error.message);
-    setApieror("Network error. Please check your connection.");
-    ToastAndroid.show("Network error. Please check your connection.", ToastAndroid.SHORT);
-  } finally {
-    setIsLoading(false);
-  }
-};
+
+    if (!validateEmail(Email)) {
+      setErrors((prev) => ({ ...prev, Email: "Please enter a valid email address" }));
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // 📨 API Call
+      const response = await axios.post(LOGIN, {
+        email: Email.trim(),
+        password: password.trim(),
+      });
+
+      console.log("✅ Login Response:", response.data);
+
+      const resData = response.data;
+
+      if (resData.status === "success") {
+        // 🎯 Save login data
+        const userData = resData.data;
+
+        await AsyncStorage.setItem("userData", JSON.stringify(userData));
+
+        // 📦 Handle Remember Me
+        if (rememberMe) {
+          await AsyncStorage.setItem("rememberedUsername", Email.trim());
+          await AsyncStorage.setItem("rememberedPassword", password.trim());
+        } else {
+          await AsyncStorage.multiRemove(["rememberedUsername", "rememberedPassword"]);
+        }
+
+
+        ToastAndroid.show("Login successful!", ToastAndroid.SHORT);
+
+        // 🔁 Navigate to your main screen (Dashboard or Home)
+        navigation.replace("Home"); // Change "Dashboard" to your actual route name
+      } else if (resData.status === "error") {
+        // ❌ API error from server
+        setApieror(resData.message || "Login failed. Please try again.");
+        ToastAndroid.show(resData.message, ToastAndroid.SHORT);
+      } else {
+        // ⚠️ Unexpected response
+        setApieror("Unexpected response. Please try again later.");
+        ToastAndroid.show("Unexpected response.", ToastAndroid.SHORT);
+      }
+    } catch (error) {
+      console.log("❌ Login Error:", error.message);
+      setApieror("Network error. Please check your connection.");
+      ToastAndroid.show("Network error. Please check your connection.", ToastAndroid.SHORT);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   return (
@@ -158,7 +158,7 @@ const handleLogin = async () => {
                 placeholderTextColor="#9ca3af"
                 value={Email}
                 onChangeText={(text) => {
-                  setEmail(text);
+                  setEmail(text.trim());
                   setErrors((prev) => ({ ...prev, Email: "" }));
                 }}
                 autoCapitalize="none"
@@ -183,7 +183,7 @@ const handleLogin = async () => {
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={(text) => {
-                    setPassword(text);
+                    setPassword(text.trim());
                     setErrors((prev) => ({ ...prev, password: "" }));
                   }}
                 />
@@ -242,7 +242,7 @@ const handleLogin = async () => {
 
             {/* Footer */}
             <Text style={styles.footerText}>
-              © 2025 D Refresh Tech | All rights reserved
+              © {new Date().getFullYear()} D Refresh Tech | All rights reserved
             </Text>
           </ScrollView>
         </KeyboardAvoidingView>

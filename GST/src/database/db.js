@@ -1,4 +1,4 @@
-// db.js - UPDATED VERSION
+// db.js - UPDATED VERSION with customerPhone and optional customer fields
 import * as SQLite from "expo-sqlite";
 
 let database = null;
@@ -9,7 +9,7 @@ export const openDB = async () => {
     if (!database) {
       database = await SQLite.openDatabaseAsync("invoice.db");
       console.log("Database opened successfully");
-      
+
       // Initialize tables immediately after opening
       await database.execAsync(`
         CREATE TABLE IF NOT EXISTS invoices (
@@ -19,7 +19,11 @@ export const openDB = async () => {
           invoiceNumber TEXT,
           shopName TEXT,
           customerName TEXT,
-          mobile TEXT,
+          customerPhone TEXT,
+          customerEmail TEXT,
+          customerAddress TEXT,
+          customerGst TEXT,
+          customerAadhar TEXT,
           total TEXT,
           invoiceData TEXT
         );
@@ -45,12 +49,11 @@ export const initDB = async () => {
   }
 };
 
-// Save new invoice - UPDATED with better error handling
+// Save new invoice
 export const saveInvoice = async (invoiceData) => {
   try {
     const db = await openDB();
 
-    // Extract data from invoiceData
     const {
       invoiceType,
       date,
@@ -61,12 +64,13 @@ export const saveInvoice = async (invoiceData) => {
 
     const shopName = "Anu Crackers";
     const customerName = customer?.name || "";
-    const mobile = customer?.phone || "";
-    
-    // Fix: Ensure total is properly converted to string
-    const total = totals?.grandTotal ? totals.grandTotal.toString() : "0";
+    const customerPhone = customer?.phone || "";
+    const customerEmail = customer?.email || null;
+    const customerAddress = customer?.address || null;
+    const customerGst = customer?.gst || null;
+    const customerAadhar = customer?.aadhar || null;
 
-    // Convert date to string if it's a Date object
+    const total = totals?.grandTotal ? totals.grandTotal.toString() : "0";
     const dateString = date instanceof Date ? date.toISOString() : String(date);
 
     console.log("Saving invoice:", {
@@ -74,43 +78,35 @@ export const saveInvoice = async (invoiceData) => {
       date: dateString,
       invoiceNumber,
       customerName,
-      mobile,
+      customerPhone,
+      customerEmail,
+      customerGst,
       total
     });
 
-        console.log("Get data Format : ",      [
-        invoiceType=invoiceType,
-        dateString=dateString,
-        invoiceNumber=invoiceNumber,
-        shopName=shopName,
-        customerName=customerName,
-        mobile=mobile,
-        total=total,
-        invoiceData=JSON.stringify(invoiceData),
-      ]);
-    
-    // Validate data before insertion
     if (!invoiceType || !dateString || !invoiceNumber) {
       throw new Error("Missing required invoice fields");
     }
 
-    // Store full JSON string in invoiceData
     const result = await db.runAsync(
-      `INSERT INTO invoices 
-        (invoiceType, date, invoiceNumber, shopName, customerName, mobile, total, invoiceData)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+      `INSERT INTO invoices
+        (invoiceType, date, invoiceNumber, shopName, customerName, customerPhone, customerEmail, customerAddress, customerGst, customerAadhar, total, invoiceData)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         invoiceType,
         dateString,
         invoiceNumber,
         shopName,
         customerName,
-        mobile,
+        customerPhone,
+        customerEmail,
+        customerAddress,
+        customerGst,
+        customerAadhar,
         total,
         JSON.stringify(invoiceData),
       ]
     );
-
 
     console.log("Invoice saved successfully with ID:", result.lastInsertRowId);
     return result;
@@ -120,14 +116,13 @@ export const saveInvoice = async (invoiceData) => {
   }
 };
 
-// ... rest of the functions remain the same
 // Get all invoices
 export const getInvoices = async () => {
   let db;
   try {
     db = await openDB();
     const rows = await db.getAllAsync("SELECT * FROM invoices ORDER BY id DESC;");
-    
+
     const invoices = rows.map((row) => {
       try {
         return {
@@ -157,7 +152,7 @@ export const getInvoiceById = async (id) => {
   try {
     db = await openDB();
     const row = await db.getFirstAsync("SELECT * FROM invoices WHERE id = ?;", [id]);
-    
+
     if (row) {
       return {
         ...row,
@@ -200,20 +195,28 @@ export const updateInvoice = async (id, invoiceData) => {
     } = invoiceData;
 
     const customerName = customer?.name || "";
-    const mobile = customer?.phone || "";
+    const customerPhone = customer?.phone || "";
+    const customerEmail = customer?.email || null;
+    const customerAddress = customer?.address || null;
+    const customerGst = customer?.gst || null;
+    const customerAadhar = customer?.aadhar || null;
     const total = totals?.grandTotal?.toString() || "0";
     const dateString = date instanceof Date ? date.toISOString() : date;
 
     const result = await db.runAsync(
-      `UPDATE invoices 
-       SET invoiceType = ?, date = ?, invoiceNumber = ?, customerName = ?, mobile = ?, total = ?, invoiceData = ?
+      `UPDATE invoices
+       SET invoiceType = ?, date = ?, invoiceNumber = ?, customerName = ?, customerPhone = ?, customerEmail = ?, customerAddress = ?, customerGst = ?, customerAadhar = ?, total = ?, invoiceData = ?
        WHERE id = ?;`,
       [
         invoiceType,
         dateString,
         invoiceNumber,
         customerName,
-        mobile,
+        customerPhone,
+        customerEmail,
+        customerAddress,
+        customerGst,
+        customerAadhar,
         total,
         JSON.stringify(invoiceData),
         id

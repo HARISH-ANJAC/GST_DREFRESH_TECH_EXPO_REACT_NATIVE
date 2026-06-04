@@ -34,7 +34,7 @@ const FormInput = ({
   <View style={props.fullWidth ? styles.inputWrapperFull : styles.inputWrapper}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
-      style={styles.input}
+      style={[styles.input, { fontSize: props.fontSize || 13, width: props.width || 'auto' }]}
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
@@ -51,8 +51,8 @@ const BillScreen = () => {
   const [invoiceType, setInvoiceType] = useState("Inside TN");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [invoiceNumber, setInvoiceNumber] = useState("SRV-2025-042");
-  const {UserData} =useAuth();
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const { UserData } = useAuth();
   // --- Customer State ---
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -104,199 +104,200 @@ const BillScreen = () => {
     );
   };
 
-const totals = useMemo(() => {
-  let subTotal = 0;
+  const totals = useMemo(() => {
+    let subTotal = 0;
 
-  products.forEach((p) => {
-    const qty = parseFloat(p.caseQty) || 0;
-    const price = parseFloat(p.price) || 0;
-    subTotal += qty * price;
-  });
+    products.forEach((p) => {
+      const qty = parseFloat(p.caseQty) || 0;
+      const price = parseFloat(p.price) || 0;
+      subTotal += qty * price;
+    });
 
-  let cgst = 0,
-    sgst = 0,
-    igst = 0,
-    grandTotal = 0;
+    let cgst = 0,
+      sgst = 0,
+      igst = 0,
+      grandTotal = 0;
 
-  if (invoiceType === "Inside TN") {
-    cgst = subTotal * 0.09;
-    sgst = subTotal * 0.09;
-    grandTotal = subTotal + cgst + sgst;
-  } else {
-    igst = subTotal * 0.18;
-    grandTotal = subTotal + igst;
-  }
+    if (invoiceType === "Inside TN") {
+      cgst = subTotal * 0.09;
+      sgst = subTotal * 0.09;
+      grandTotal = subTotal + cgst + sgst;
+    } else {
+      igst = subTotal * 0.18;
+      grandTotal = subTotal + igst;
+    }
 
-  return {
-    subTotal,
-    cgst,
-    sgst,
-    igst,
-    grandTotal,
-  };
-}, [products, invoiceType]);
+    return {
+      subTotal,
+      cgst,
+      sgst,
+      igst,
+      grandTotal,
+    };
+  }, [products, invoiceType]);
 
   // --- Save Invoice (API Call) ---
-const handleSaveInvoice = async () => {
-  try {
+  const handleSaveInvoice = async () => {
+    try {
+      if (!invoiceNumber) {
+        Alert.alert("Missing Info", "Invoice Number is required.");
+        return;
+      }
+      if (!customerName || !customerPhone) {
+        Alert.alert("Missing Info", "Customer Name and Phone are required.");
+        return;
+      }
+
+      if (products.some((p) => !p.name || !p.caseQty || !p.price)) {
+        Alert.alert("Missing Product Info", "Please fill all fields for all products.");
+        return;
+      }
+
+      const dateString = new Date(date).toISOString().split("T")[0];
+
+      const invoiceData = {
+        user_id: UserData.USER_ID,
+        invoiceType,
+        dateString,
+        invoiceNumber,
+        shopName: UserData.name.toUpperCase(),
+        customerName,
+        customerPhone,
+        customerGst: customerGST,
+        customerAadhar,
+        customerAddress,
+        customerEmail,
+        total: totals.grandTotal,
+        invoiceData: products.map((p) => ({
+          item: p.name?.trim() || "N/A",
+          qty: parseFloat(p.caseQty) || 0,
+          rate: parseFloat(p.price) || 0,
+          amount: (parseFloat(p.caseQty) || 0) * (parseFloat(p.price) || 0),
+          hsn: p.hsn || "",
+          per: p.per || "",
+        })),
+      };
+
+      console.log("🧾 Sending Invoice:", invoiceData);
+
+      const response = await fetch("https://drefresh.com/h/h/api_add_invoice.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invoiceData),
+      });
+
+      const result = await response.json();
+      console.log("✅ API Response:", result);
+
+      if (result.status === "success") {
+        Alert.alert("✅ Success", result.message || "Invoice saved successfully!");
+        // Reset form
+        setCustomerName("");
+        setCustomerEmail("");
+        setCustomerAddress("");
+        setCustomerPhone("");
+        setCustomerGST("");
+        setCustomerAadhar("");
+        setProducts([{ id: 1, name: "", hsn: "", per: "", caseQty: "", price: "" }]);
+        setNextId(2);
+        navigation.navigate("Home");
+      } else {
+        Alert.alert("⚠️ Error", result.message || "Failed to save invoice.");
+      }
+    } catch (error) {
+      console.error("❌ Save Error:", error);
+      Alert.alert("Error", "Something went wrong while saving the invoice.");
+    }
+  };
+
+  // --- Preview Invoice (same as before) ---
+  // In BillScreen.jsx - Update the handlePreviewInvoice function
+  // In BillScreen.jsx - Update handlePreviewInvoice function
+  const handlePreviewInvoice = () => {
     if (!customerName || !customerPhone) {
       Alert.alert("Missing Info", "Customer Name and Phone are required.");
       return;
     }
-
     if (products.some((p) => !p.name || !p.caseQty || !p.price)) {
-      Alert.alert("Missing Product Info", "Please fill all fields for all products.");
+      Alert.alert(
+        "Missing Product Info",
+        "Please fill all fields for all products."
+      );
       return;
     }
 
-    const dateString = new Date(date).toISOString().split("T")[0];
-    
+    const serializableDate = date instanceof Date ? date.toISOString() : date;
+
+    // Create a clean, properly structured data object
     const invoiceData = {
-      user_id: UserData.USER_ID, // Ideally from user session
+      // Core invoice info
       invoiceType,
-      date: dateString,
+      date: serializableDate,
       invoiceNumber,
-      shopName: UserData.name.toUpperCase(),
-      customerName,
-      mobile: customerPhone,
-      total: totals.grandTotal,
-      invoiceData: {  //name: "", hsn: "", per: "", caseQty: "", price: ""
-         items: products.map((p) => ({
-            id: p.id,
-            name: p.name?.trim() || "N/A",
-            hsn: p.hsn?.trim() || "N/A",
-            per: p.per?.trim() || "N/A",
-            caseQty: parseFloat(p.caseQty) || 0,
-            price: parseFloat(p.price) || 0,
-            amount: (parseFloat(p.caseQty) || 0) * (parseFloat(p.price) || 0),
-          })),
-        subtotal: totals.subTotal,
+
+      // Customer info in both formats for compatibility
+      customer: {
+        name: customerName,
+        email: customerEmail,
+        address: customerAddress,
+        phone: customerPhone,
+        gst: customerGST,
+        aadhar: customerAadhar,
+      },
+      customerName: customerName, // For backward compatibility
+
+      // Totals info
+      totals: {
+        subTotal: totals.subTotal,
+        grandTotal: totals.grandTotal,
         cgst: totals.cgst,
         sgst: totals.sgst,
         igst: totals.igst,
-        grandTotal: totals.grandTotal,
       },
-    };
+      total: totals.grandTotal, // For backward compatibility
 
-    console.log("🧾 Sending Invoice:", invoiceData);
-
-    const response = await fetch("https://drefresh.com/h/h/api_add_invoice.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invoiceData),
-    });
-
-    const result = await response.json();
-    console.log("✅ API Response:", result);
-
-    if (result.status === "success") {
-      Alert.alert("✅ Success", result.message || "Invoice saved successfully!");
-      // Reset form
-      setCustomerName("");
-      setCustomerEmail("");
-      setCustomerAddress("");
-      setCustomerPhone("");
-      setCustomerGST("");
-      setCustomerAadhar("");
-      setProducts([{ id: 1, name: "", hsn: "", per: "", caseQty: "", price: "" }]);
-      setNextId(2);
-      navigation.navigate("Home");
-    } else {
-      Alert.alert("⚠️ Error", result.message || "Failed to save invoice.");
-    }
-  } catch (error) {
-    console.error("❌ Save Error:", error);
-    Alert.alert("Error", "Something went wrong while saving the invoice.");
-  }
-};
-
-  // --- Preview Invoice (same as before) ---
-// In BillScreen.jsx - Update the handlePreviewInvoice function
-// In BillScreen.jsx - Update handlePreviewInvoice function
-const handlePreviewInvoice = () => {
-  if (!customerName || !customerPhone) {
-    Alert.alert("Missing Info", "Customer Name and Phone are required.");
-    return;
-  }
-  if (products.some((p) => !p.name || !p.caseQty || !p.price)) {
-    Alert.alert(
-      "Missing Product Info",
-      "Please fill all fields for all products."
-    );
-    return;
-  }
-
-  const serializableDate = date instanceof Date ? date.toISOString() : date;
-
-  // Create a clean, properly structured data object
-  const invoiceData = {
-    // Core invoice info
-    invoiceType,
-    date: serializableDate,
-    invoiceNumber,
-    
-    // Customer info in both formats for compatibility
-    customer: {
-      name: customerName,
-      email: customerEmail,
-      address: customerAddress,
-      phone: customerPhone,
-      gst: customerGST,
-      aadhar: customerAadhar,
-    },
-    customerName: customerName, // For backward compatibility
-    mobile: customerPhone, // For backward compatibility
-    
-    // Totals info
-    totals: {
-      subTotal: totals.subTotal,
-      grandTotal: totals.grandTotal,
-      cgst: totals.cgst,
-      sgst: totals.sgst,
-      igst: totals.igst,
-    },
-    total: totals.grandTotal, // For backward compatibility
-    
-    // Items info
-    items: products.map((p) => ({
-      id: p.id,
-      name: p.name?.trim() || "N/A",
-      description: p.per?.trim() || "",
-      quantity: parseFloat(p.caseQty) || 0,
-      caseQty: parseFloat(p.caseQty) || 0, // For backward compatibility
-      price: parseFloat(p.price) || 0,
-      amount: (parseFloat(p.caseQty) || 0) * (parseFloat(p.price) || 0),
-      hsn: p.hsn || "N/A",
-      per: p.per || "N/A"
-    })),
-    
-    // Legacy structure for compatibility
-    invoiceData: {
+      // Items info
       items: products.map((p) => ({
         id: p.id,
         name: p.name?.trim() || "N/A",
         description: p.per?.trim() || "",
         quantity: parseFloat(p.caseQty) || 0,
+        caseQty: parseFloat(p.caseQty) || 0, // For backward compatibility
         price: parseFloat(p.price) || 0,
         amount: (parseFloat(p.caseQty) || 0) * (parseFloat(p.price) || 0),
+        hsn: p.hsn || "N/A",
+        per: p.per || "N/A"
       })),
-      subtotal: totals.subTotal,
-      cgst: totals.cgst,
-      sgst: totals.sgst,
-      igst: totals.igst,
-      grandTotal: totals.grandTotal,
+
+      // Legacy structure for compatibility
+      invoiceData: {
+        items: products.map((p) => ({
+          id: p.id,
+          name: p.name?.trim() || "N/A",
+          description: p.per?.trim() || "",
+          quantity: parseFloat(p.caseQty) || 0,
+          price: parseFloat(p.price) || 0,
+          amount: (parseFloat(p.caseQty) || 0) * (parseFloat(p.price) || 0),
+          hsn: p.hsn || "N/A",
+          per: p.per || "N/A",
+        })),
+        subtotal: totals.subTotal,
+        cgst: totals.cgst,
+        sgst: totals.sgst,
+        igst: totals.igst,
+        grandTotal: totals.grandTotal,
+      }
+    };
+
+    console.log("Preview Data:", invoiceData); // Debug log
+
+    try {
+      navigation.navigate("InvoicePreview", { invoiceData });
+    } catch (error) {
+      console.error("Error navigating:", error);
+      Alert.alert("Error", "Could not open invoice preview.");
     }
   };
-
-  console.log("Preview Data:", invoiceData); // Debug log
-
-  try {
-    navigation.navigate("InvoicePreview", { invoiceData });
-  } catch (error) {
-    console.error("Error navigating:", error);
-    Alert.alert("Error", "Could not open invoice preview.");
-  }
-};
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
@@ -358,7 +359,9 @@ const handlePreviewInvoice = () => {
                   label="Invoice #"
                   value={invoiceNumber}
                   onChangeText={setInvoiceNumber}
-                  keyboardType="number-pad"
+                  keyboardType="default"
+                  placeholder="Enter Invoice Number"
+                  width="210%"
                 />
               </View>
             </View>
@@ -549,17 +552,17 @@ const handlePreviewInvoice = () => {
           {/* --- Save Button --- */}
           <View style={styles.ButtonContainer}>
             <TouchableOpacity
-              style={styles.saveButton} 
+              style={styles.saveButton}
               onPress={handleSaveInvoice}
             >
               <Text style={styles.saveButtonText}>Save Invoice</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.saveButton,{backgroundColor: COLORS.primary}]} 
+            {/* <TouchableOpacity
+              style={[styles.saveButton, { backgroundColor: COLORS.primary }]}
               onPress={handlePreviewInvoice}
             >
               <Text style={styles.saveButtonText}>Preview Invoice</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </KeyboardAvoidingView>

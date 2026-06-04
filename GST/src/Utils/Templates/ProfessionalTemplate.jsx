@@ -1,4 +1,7 @@
 // ProfessionalTemplate.jsx
+import { Image } from 'react-native';
+import { COMPANYINFO } from "../../constants/CompanyInfo";
+import { IMAGE } from "../../constants/images";
 import { formatDate } from "../DateUtils";
 /**
  * Use the Bill Footer Format  ANU CRACKERS • Quality Fireworks Since 1995 • www.anucrackers.com 
@@ -120,7 +123,7 @@ const generateTaxRows = (invoiceData) => {
 const generateWatermarkCSS = (watermarkEnabled, logoUrl) => {
   console.log("watermark : ", watermarkEnabled);
   
-  if (!watermarkEnabled) {
+  if (!watermarkEnabled || !logoUrl) {
     return `
       .table-watermark {
         display: none !important;
@@ -203,9 +206,18 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
     invoiceType = "Inside TN"
   } = invoiceData;
   
+  const safeUserData = {
+    name: userData?.name || COMPANYINFO.name || "Your Company",
+    address: userData?.address || COMPANYINFO.address || "Company Address",
+    gst: userData?.gst || COMPANYINFO.gst || "GST Number",
+    email: userData?.email || COMPANYINFO.email || "email@company.com",
+    phone: userData?.phone || COMPANYINFO.phone || "Phone Number",
+    bill_footer: userData?.bill_footer || COMPANYINFO.BILL_FOOTER || "Thank you for your business",
+    logo_url: userData?.logo_url || COMPANYINFO.logo || Image.resolveAssetSource(IMAGE.Logo).uri,
+  };
   const { rows: productRows, totalCase } = generateProductRows(items);
   const taxRows = generateTaxRows(invoiceData);
-  const logoUrl = userData.logo_url||"https://anucrackers.com/anucrackersog.png";
+  const logoUrl = safeUserData.logo_url;
   
   // Get watermark setting, default to true if not provided
   const watermarkEnabled = settings.invoiceWatermark !== false;
@@ -216,7 +228,7 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Invoice - ${userData.name}</title>
+      <title>Invoice - ${safeUserData.name}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
         
@@ -756,12 +768,12 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
           <div class="company-info">
             <div class="logo-section">
               <div class="logo">
-                <img src="${logoUrl}" alt="${userData.name}">
+                <img src="${logoUrl}" alt="${safeUserData.name}">
               </div>
               <div class="company-details">
-                <h1>${userData.name}</h1>
-                <p>${userData.address}</p>
-                <div class="gst-badge">GST: ${userData.gst}</div>
+                <h1>${safeUserData.name}</h1>
+                <p>${safeUserData.address}</p>
+                <div class="gst-badge">GST: ${safeUserData.gst}</div>
               </div>
             </div>
           </div>
@@ -781,10 +793,11 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
               <span class="section-label">Bill To</span>
               <div class="customer-name">${customer?.name || "N/A"}</div>
               <div class="customer-details">
-                ${customer?.address ? `<div>${customer.address}</div>` : ""}
                 ${customer?.phone ? `<div>Phone: ${customer.phone}</div>` : ""}
-                ${customer?.aadhar ? `<div>Aadhar: ${customer.aadhar}</div>` : ""}
+                ${customer?.email ? `<div>Email: ${customer.email}</div>` : ""}
+                ${customer?.address ? `<div>${customer.address}</div>` : ""}
                 ${customer?.gst ? `<div>GSTIN: ${customer.gst}</div>` : ""}
+                ${customer?.aadhar ? `<div>Aadhar: ${customer.aadhar}</div>` : ""}
               </div>
             </div>
             
@@ -844,7 +857,7 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
                   &nbsp;
                 </div>
                 <div class="company-signature">
-                  For ${userData.name.toUpperCase()}
+                  For ${safeUserData.name.toUpperCase()}
                 </div>
               </div>
             </div>
@@ -855,19 +868,19 @@ export const generateInvoiceHTML = (invoiceData,userData) => {
                 <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
                 </svg>
-                ${userData.email}
+                ${safeUserData.email}
               </div>
               <div class="contact-item">
                 <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
                 </svg>
-                ${userData.phone}
+                ${safeUserData.phone}
               </div>
             </div>
             
             <!-- Footer Brand -->
             <div class="footer-brand">
-              ${userData.bill_footer}
+              ${safeUserData.bill_footer}
             </div>
           </div>
         </div>
